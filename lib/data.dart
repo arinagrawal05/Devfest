@@ -14,6 +14,22 @@ class QuestionData {
     this.answer,
     this.answerImg,
   );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is QuestionData &&
+          runtimeType == other.runtimeType &&
+          question == other.question &&
+          questionID == other.questionID &&
+          answer == other.answer &&
+          answerImg == other.answerImg;
+
+  @override
+  int get hashCode =>
+      question.hashCode ^
+      questionID.hashCode ^
+      answer.hashCode ^
+      answerImg.hashCode;
 
   factory QuestionData.fromFirestore(DocumentSnapshot doc) {
     dynamic map = doc.data();
@@ -21,8 +37,8 @@ class QuestionData {
     return QuestionData(
       map['question'] ?? '',
       map['questionID'] ?? '',
-      map['answer'] ?? '',
       map['answerID'] ?? '',
+      map['answer'] ?? '',
     );
   }
 
@@ -30,8 +46,8 @@ class QuestionData {
     return {
       'question': question,
       'questionID': questionID,
-      'answer': answer,
-      'answerID': answerImg,
+      'answer': answerImg,
+      'answerID': answer,
     };
   }
 }
@@ -49,8 +65,8 @@ List<QuestionData> questionDataList = [
       "https://uxwing.com/wp-content/themes/uxwing/download/brands-and-social-media/dart-programming-language-icon.png"),
   QuestionData("Which is swift logo", "q6", "swift",
       "https://firebasestorage.googleapis.com/v0/b/devfest-c0b36.appspot.com/o/Logos%2FSwift.png?alt=media&token=3b3a50b1-e3e1-4166-89dc-1d47dc58a6e7"),
-  QuestionData("Which is python logo", "q7", "python",
-      "https://e7.pngegg.com/pngimages/621/411/png-clipart-computer-icons-python-anaconda-anaconda-angle-other.png"),
-  QuestionData("Which is Laravel logo", "q8", "laravel",
-      "https://firebasestorage.googleapis.com/v0/b/devfest-c0b36.appspot.com/o/Logos%2FLaravel.png?alt=media&token=1d61208b-b7fc-4639-81f7-9d50df99b1ed"),
+  QuestionData("Which is Android logo", "q7", "android",
+      "https://firebasestorage.googleapis.com/v0/b/devfest-c0b36.appspot.com/o/Logos%2Fandroid.png?alt=media&token=4a4bdcdf-3919-45ce-b654-c87cc3c7f8f7"),
+  QuestionData("Which is Tensorflow logo", "q8", "tensorflow",
+      "https://firebasestorage.googleapis.com/v0/b/devfest-c0b36.appspot.com/o/Logos%2Ftensorflow.png?alt=media&token=818c6637-3666-42b6-8342-4b98207093ac"),
 ];

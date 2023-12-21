@@ -1,10 +1,12 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:devfest/google_sign.dart';
+import 'package:devfest/boarding.dart';
 import 'package:devfest/reply_class.dart';
+import 'package:devfest/stopwatch.dart';
 import 'package:devfest/widget.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 // import 'package:firebase_analytics/observer.dart'
 
@@ -29,6 +31,7 @@ class Homepage extends StatefulWidget {
 class _HomepageState extends State<Homepage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   late AudioPlayer _audioPlayer;
+  late AudioPlayer _audioPlayer2;
   User? user = FirebaseAuth.instance.currentUser;
   final ScrollController _scrollController = ScrollController();
   final FirebaseAnalytics analytics = FirebaseAnalytics.instance;
@@ -44,37 +47,104 @@ class _HomepageState extends State<Homepage> {
   @override
   void initState() {
     super.initState();
+    if (user == null) {
+      WidgetsBinding.instance!.addPostFrameCallback((_) {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const BoardingScreen()));
+      });
+    }
+    mywatch.start();
+    listenToFirestoreValues();
     analytics.setAnalyticsCollectionEnabled(true);
     _audioPlayer = AudioPlayer();
+    _audioPlayer2 = AudioPlayer();
+    FirebaseFirestore.instance.collection("Meta").doc("meta-data").update({
+      'last_question_time': Timestamp.now(),
+    });
+    FirebaseFirestore.instance
+        .collection("Questions")
+        .doc("currentquestion")
+        .update(questionDataList[0].toMap());
+    listenToquestionChange();
   }
 
+  bool isSoundEnabled = false;
+  void listenToFirestoreValues() {
+    print("listening start");
+    CollectionReference metaCollection =
+        FirebaseFirestore.instance.collection('Meta');
+    DocumentReference documentReference = metaCollection.doc('meta-data');
+    documentReference.snapshots().listen((DocumentSnapshot snapshot) {
+      if (snapshot.exists) {
+        isSoundEnabled = snapshot.get('isSound');
+        lastquestionTime = snapshot.get('last_question_time');
+        print(
+            "Listened New data Where Sound is $isSoundEnabled Last Time is${lastquestionTime.toDate()}");
+        if (isSoundEnabled) {
+          playBackgroundSoundEffect(_audioPlayer2);
+        } else {
+          _audioPlayer2.stop();
+        }
+      }
+    });
+  }
+
+  void listenToquestionChange() {
+    print("question listening start");
+    CollectionReference metaCollection =
+        FirebaseFirestore.instance.collection('Questions');
+    DocumentReference documentReference = metaCollection.doc('currentquestion');
+    documentReference.snapshots().listen((DocumentSnapshot snapshot) {
+      if (snapshot.exists) {
+        print("this changes ssssssssssssssssssssssssssssssssssssss");
+
+        mywatch.start();
+        mywatch.reset();
+        // curentquestion
+        curentquestion = QuestionData.fromFirestore(snapshot);
+        // curentquestion = QuestionData(
+        //     snapshot.get('question'),
+        //     snapshot.get('questionID'),
+        //     snapshot.get('answerID'),
+        //     snapshot.get('answer'));
+
+        // isSoundEnabled = snapshot.get('isSound');
+        // lastquestionTime = snapshot.get('last_question_time');
+        print("new question" + curentquestion.toMap().toString());
+        print("old question" + questionDataList[0].toMap().toString());
+        if (isSoundEnabled) {
+          playBackgroundSoundEffect(_audioPlayer2);
+        } else {
+          _audioPlayer2.stop();
+        }
+      }
+    });
+  }
+
+  List<QuestionData> shuffleList(List<QuestionData> list) {
+    final Random random = Random();
+    List<QuestionData> shuffledList = List.from(list);
+
+    for (int i = shuffledList.length - 1; i > 0; i--) {
+      int randIndex = random.nextInt(i + 1);
+
+      // Swap elements at i and randIndex
+      QuestionData temp = shuffledList[i];
+      shuffledList[i] = shuffledList[randIndex];
+      shuffledList[randIndex] = temp;
+    }
+
+    return shuffledList;
+  }
+
+  Stopwatch mywatch = Stopwatch();
   int counter = 0;
   String lastquestionID = "";
-  // String quesion
+  Timestamp lastquestionTime = Timestamp.now();
   QuestionData curentquestion = questionDataList[0];
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      bottomNavigationBar: Container(
-          child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            height: 100,
-            width: MediaQuery.of(context).size.width,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: questionDataList.length,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: signButton(questionDataList[index], lastquestionID),
-                );
-              },
-            ),
-          ),
-        ],
-      )),
       backgroundColor: backgoundColor,
       key: _scaffoldKey,
       body: RawKeyboardListener(
@@ -83,13 +153,14 @@ class _HomepageState extends State<Homepage> {
         focusNode: _focusNode,
         onKey: (rawKeyEvent) {
           handleKeyEvent(rawKeyEvent,
-                  findIndex(curentquestion, questionDataList), context)
-              .then((value) {
-            // setState(() {
-            curentquestion = questionDataList[value.questionNo];
-            // });
-          });
-          // throw Exception('No return value');
+              findIndex(curentquestion, questionDataList), context);
+
+          //     .then((value) {
+          //   // mywatch.start();
+          //   // mywatch.reset();
+
+          //   // curentquestion = questionDataList[value.questionNo];
+          // });
         },
         child: Stack(
           children: [
@@ -102,7 +173,7 @@ class _HomepageState extends State<Homepage> {
               width: MediaQuery.of(context).size.width,
               onTapAnimation: true,
               particleColor: Colors.white.withAlpha(150),
-              awayAnimationDuration: Duration(milliseconds: 600),
+              awayAnimationDuration: const Duration(milliseconds: 600),
               maxParticleSize: 8,
               isRandSize: true,
               isRandomColor: true,
@@ -130,12 +201,13 @@ class _HomepageState extends State<Homepage> {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      MyStopwatch(stopwatch: mywatch),
                       const SizedBox(
-                        height: 50,
+                        height: 10,
                       ),
                       Container(
                         width: MediaQuery.of(context).size.width * 0.8,
-                        height: MediaQuery.of(context).size.height * 0.7,
+                        height: MediaQuery.of(context).size.height * 0.65,
                         decoration: BoxDecoration(
                           color: Colors.grey.shade300,
                           borderRadius: BorderRadius.circular(5),
@@ -165,14 +237,14 @@ class _HomepageState extends State<Homepage> {
 
                                 if (snapshot.connectionState ==
                                     ConnectionState.waiting) {
-                                  return Center(
+                                  return const Center(
                                     child: CircularProgressIndicator(),
                                   );
                                 }
 
                                 if (!snapshot.hasData ||
                                     !snapshot.data!.exists) {
-                                  return Center(
+                                  return const Center(
                                     child: Text('Document does not exist'),
                                   );
                                 }
@@ -245,12 +317,28 @@ class _HomepageState extends State<Homepage> {
                           ],
                         ),
                       ),
-                      const SizedBox(
-                        height: 20,
-                      ),
-                      const SizedBox(
-                        height: 20,
-                      ),
+                      Spacer(),
+                      Container(
+                        width: 300,
+                        // height: 150,
+                        child: GridView.builder(
+                          physics: NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 4, // Number of columns
+                            crossAxisSpacing: 2.0, // Spacing between columns
+                            mainAxisSpacing: 2.0, // Spacing between rows
+                          ),
+                          itemCount: questionDataList
+                              .length, // Total number of items in the grid
+                          itemBuilder: (context, index) {
+                            // Build each grid item
+                            return iconButton(
+                                questionDataList[index], lastquestionID);
+                          },
+                        ),
+                      )
                     ]),
               ),
             ),
@@ -260,19 +348,30 @@ class _HomepageState extends State<Homepage> {
     );
   }
 
-  void check(String givenAns, String newQid, String userid) {
+  void check(
+    String givenAns,
+    String newQid,
+    String userid,
+    DateTime lastquestion,
+  ) {
     if (givenAns == curentquestion.answer) {
+      int scoreParameter =
+          DateTime.now().difference(lastquestionTime.toDate()).inSeconds;
+      int newscore = 100 - (scoreParameter * 3);
+      print("$scoreParameter Seconds User has Taken");
       if (curentquestion.questionID != lastquestionID) {
-        setState(() {
-          counter++;
-          lastquestionID = curentquestion.questionID;
-        });
+        // mywatch.stop();
+
+        counter += newscore;
+        lastquestionID = curentquestion.questionID;
+
+        playBonusSoundEffect(_audioPlayer);
+        showSnackBar(context,
+            "Hurray! You took $scoreParameter secs 🎉\n$newscore Points added!");
         FirebaseFirestore.instance.collection("Result").doc(userid).update({
           "score": counter,
           "timestamp": DateTime.now(),
-        }).then((value) {
-          print("new score added");
-        });
+        }).then((value) {});
       } else {
         print("Answered Same Question Again");
       }
@@ -281,9 +380,9 @@ class _HomepageState extends State<Homepage> {
     }
   }
 
-  Widget signButton(QuestionData model, String questionID) {
+  Widget iconButton(QuestionData model, String questionID) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(50),
         child: Container(
@@ -293,6 +392,13 @@ class _HomepageState extends State<Homepage> {
             animationDuration: const Duration(milliseconds: 250),
             color: Colors.grey.shade200,
             onTapUp: () {
+              // int scoreParameter =
+              //     DateTime.now().difference(lastquestionTime).inSeconds;
+              // for (var i = 0; i < 10; i++) {
+              //   Timer(Duration(seconds: 2), () {
+              //     print(scoreParameter);
+              //   });
+              // }
               // FirebaseFirestore.instance
               //     .collection("Questions")
               //     .add(questionDataList[0].toMap())
@@ -315,15 +421,18 @@ class _HomepageState extends State<Homepage> {
               }).then((value) {
                 logButtonPress(analytics, model.answerImg);
                 print(curentquestion.toMap().toString());
-                check(model.answer, questionID,
-                    user != null ? user!.uid : "userid");
-                scrollToBottom(_scrollController);
+                check(
+                    model.answer,
+                    questionID,
+                    user != null ? user!.uid : "userid",
+                    lastquestionTime.toDate());
+                // scrollToBottom(_scrollController);
               });
             },
             bottomShadowColor: Colors.grey.shade400,
             rightShadowColor: Colors.grey.shade400,
             onTapDown: () {
-              playSoundEffect(_audioPlayer);
+              playButtonSoundEffect(_audioPlayer);
             },
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
@@ -334,13 +443,22 @@ class _HomepageState extends State<Homepage> {
       ),
     );
   }
-}
 
-int findIndex(QuestionData search, List<QuestionData> stringList) {
-  try {
-    int index = stringList.indexOf(search);
-    return index;
-  } catch (e) {
-    return -1; // Return -1 if the string is not found in the list
+  void showSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  int findIndex(QuestionData search, List<QuestionData> stringList) {
+    try {
+      int index = stringList.indexOf(search);
+      return index;
+    } catch (e) {
+      return -1; // Return -1 if the string is not found in the list
+    }
   }
 }

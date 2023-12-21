@@ -1,14 +1,13 @@
 import 'package:devfest/google_sign.dart';
+import 'package:devfest/waiting.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:neopop/widgets/buttons/neopop_button/neopop_button.dart';
 
 import 'functions.dart';
-import 'homepage.dart';
 // import 'package:notes_app/function.dart';
 // import 'package:notes_app/services/google_sign.dart';
 
@@ -31,9 +30,9 @@ class _BoardingScreenState extends State<BoardingScreen> {
     super.initState();
     _audioPlayer = AudioPlayer();
     if (user != null) {
-      WidgetsBinding.instance!.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => Homepage()));
+            context, MaterialPageRoute(builder: (context) => WaitingScreen()));
       });
     }
   }

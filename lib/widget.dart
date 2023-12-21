@@ -1,9 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:devfest/reply_class.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:neopop/widgets/buttons/neopop_button/neopop_button.dart';
 
 Widget replywidget(ReplyData replyData) {
   return Padding(
@@ -16,14 +13,14 @@ Widget replywidget(ReplyData replyData) {
           minRadius: 13,
           maxRadius: 14,
         ),
-        SizedBox(
+        const SizedBox(
           width: 10,
         ),
         Text(
           replyData.name,
           style: GoogleFonts.inter(fontSize: 18),
         ),
-        SizedBox(
+        const SizedBox(
           width: 12,
         ),
         Container(
@@ -33,10 +30,10 @@ Widget replywidget(ReplyData replyData) {
   );
 }
 
-void scrollToBottom(ScrollController _scrollController) {
-  _scrollController.animateTo(
-    _scrollController.position.maxScrollExtent,
-    duration: Duration(milliseconds: 500),
-    curve: Curves.easeInOut,
-  );
-}
+// void scrollToBottom(ScrollController _scrollController) {
+//   _scrollController.animateTo(
+//     _scrollController.position.maxScrollExtent,
+//     duration: const Duration(milliseconds: 500),
+//     curve: Curves.easeInOut,
+//   );
+// }

@@ -1,12 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:devfest/boarding.dart';
 import 'package:devfest/homepage.dart';
+import 'package:devfest/waiting.dart';
 import 'package:firebase_analytics/firebase_analytics.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:uuid/uuid.dart';
 
 const Color backgoundColor = Color.fromRGBO(227, 222, 216, 1);
 const Color primaryTextColor = Color.fromRGBO(175, 141, 105, 1);
@@ -39,14 +38,18 @@ userAddToFirebase(User userDetails, BuildContext context) {
         "score": 0,
         "timestamp": DateTime.now(),
       }).then((value) {
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (context) => Homepage()));
-        print("All Data is Saved To Firebase!!");
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const WaitingScreen()));
+        if (kDebugMode) {
+          print("All Data is Saved To Firebase!!");
+        }
       });
     } else {
-      Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => Homepage()));
-      print("this is existing user");
+      Navigator.pushReplacement(context,
+          MaterialPageRoute(builder: (context) => const WaitingScreen()));
+      if (kDebugMode) {
+        print("this is existing user");
+      }
     }
   });
 }
@@ -56,12 +59,43 @@ void logButtonPress(FirebaseAnalytics analytics, String page) {
     name: 'button_press',
     parameters: <String, dynamic>{'page': page},
   ).then((value) {
-    print("Analytics Recorded");
+    if (kDebugMode) {
+      print("Analytics Recorded");
+    }
   });
 }
 
-Future<void> playSoundEffect(AudioPlayer audioPlayer) async {
+Future<void> playButtonSoundEffect(AudioPlayer audioPlayer) async {
   String soundPath = "assets/sound.wav";
+  try {
+    await audioPlayer.setAsset(soundPath);
+    await audioPlayer.play();
+    if (kDebugMode) {
+      print("Sound effect played successfully");
+    }
+  } catch (e) {
+    if (kDebugMode) {
+      print("Error playing sound effect: $e");
+    }
+  }
+}
+
+Future<void> playBonusSoundEffect(AudioPlayer audioPlayer) async {
+  String soundPath = "assets/bonus.wav";
+  try {
+    await audioPlayer.setAsset(soundPath);
+    await audioPlayer.play();
+    if (kDebugMode) {
+      print("Sound effect played successfully");
+    }
+  } catch (e) {
+    print("Error playing sound effect: $e");
+  }
+}
+
+Future<void> playBackgroundSoundEffect(AudioPlayer audioPlayer) async {
+  audioPlayer.setLoopMode(LoopMode.one);
+  String soundPath = "assets/background.wav";
   try {
     await audioPlayer.setAsset(soundPath);
     await audioPlayer.play();
@@ -69,22 +103,4 @@ Future<void> playSoundEffect(AudioPlayer audioPlayer) async {
   } catch (e) {
     print("Error playing sound effect: $e");
   }
-}
-
-setprefab(
-  bool isLogged,
-  String userid,
-  String name,
-  String email,
-  String photo,
-  String phone,
-) async {
-  print(userid);
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  prefs.setString("userid", userid.toString());
-  prefs.setString("name", name);
-  prefs.setString("phone", phone);
-  prefs.setString("photo", photo);
-  prefs.setString("email", email.toString());
-  prefs.setBool("isLogged", isLogged);
 }

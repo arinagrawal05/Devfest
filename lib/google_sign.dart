@@ -60,14 +60,6 @@ class AuthMethods {
       //     userDetails.email ?? "",
       //     userDetails.phoneNumber ?? "",
       //     userDetails.photoURL ?? "");
-      setprefab(
-        true,
-        userDetails.uid,
-        userDetails.displayName ?? "",
-        userDetails.email ?? "",
-        userDetails.photoURL ?? "",
-        userDetails.phoneNumber ?? "",
-      );
 
       // navigateslide(NotesHomePage(), context);
     } else {
